@@ -7,11 +7,13 @@ require('dotenv').config();
 const moodRouter = require('./routes/mood');
 const chatRouter = require('./routes/chat');
 const summaryRouter = require('./routes/summary');
+const loginRouter = require('./routes/login');
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+app.use('/login', loginRouter);
 app.use('/mood', moodRouter);
 app.use('/chat', chatRouter);
 app.use('/summary', summaryRouter);

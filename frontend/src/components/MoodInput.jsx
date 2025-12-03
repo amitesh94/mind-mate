@@ -11,10 +11,13 @@ export default function MoodInput({ onSaved }){
   async function submit(){
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:4000/mood', {
+      const user = JSON.parse(localStorage.getItem('mindmate_user') || '{}');
+      const userId = user.userId;
+      
+      const res = await fetch(`http://localhost:4000/mood?userId=${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mood: moodIdx, stress: parseInt(stress) })
+        body: JSON.stringify({ mood: moodIdx, stress: parseInt(stress), userId })
       });
       const data = await res.json();
       if (onSaved) onSaved(data.entries);

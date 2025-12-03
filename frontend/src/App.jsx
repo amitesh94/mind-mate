@@ -7,7 +7,7 @@ import BreathingExercise from './components/BreathingExercise'
 import mindMateLogo from '../Images/MindMateFinal.png'
 import './styles.css'
 
-export default function App(){
+export default function App({ onLogout }){
   const [entries, setEntries] = useState([])
   const [summary, setSummary] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -16,7 +16,10 @@ export default function App(){
     // load last 10 entries from backend, or from localStorage fallback
     async function load(){
       try{
-        const res = await fetch('http://localhost:4000/mood');
+        const user = JSON.parse(localStorage.getItem('mindmate_user') || '{}');
+        const userId = user.userId;
+        
+        const res = await fetch(`http://localhost:4000/mood?userId=${userId}`);
         if(res.ok){
           const data = await res.json();
           setEntries(data.entries || []);
@@ -44,10 +47,14 @@ export default function App(){
     }
 
     try {
+      const user = JSON.parse(localStorage.getItem('mindmate_user') || '{}');
+      const userId = user.userId;
+      
       // Call backend to clear data
-      const res = await fetch('http://localhost:4000/mood/clear', {
+      const res = await fetch(`http://localhost:4000/mood/clear?userId=${userId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
       });
       
       if (res.ok) {
@@ -77,15 +84,26 @@ export default function App(){
         <div style={{flex:1,display:'flex',justifyContent:'center',flexShrink:0}}>
           <BreathingExercise />
         </div>
-        <button 
-          onClick={handleClearData}
-          style={{padding:'10px 14px',borderRadius:10,background:'#ff6b6b',color:'#fff',border:'none',cursor:'pointer',fontWeight:'600',fontSize:'12px',boxShadow:'0 4px 12px rgba(255, 107, 107, 0.3)',transition:'all 0.3s ease',whiteSpace:'nowrap'}}
-          onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
-          onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
-          title="Clear all data and start fresh"
-        >
-          🗑️ Clear Data
-        </button>
+        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+          <button 
+            onClick={handleClearData}
+            style={{padding:'10px 14px',borderRadius:10,background:'#ff6b6b',color:'#fff',border:'none',cursor:'pointer',fontWeight:'600',fontSize:'12px',boxShadow:'0 4px 12px rgba(255, 107, 107, 0.3)',transition:'all 0.3s ease',whiteSpace:'nowrap'}}
+            onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+            onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+            title="Clear all data and start fresh"
+          >
+            🗑️ Clear Data
+          </button>
+          <button 
+            onClick={onLogout}
+            style={{padding:'10px 14px',borderRadius:10,background:'#667eea',color:'#fff',border:'none',cursor:'pointer',fontWeight:'600',fontSize:'12px',boxShadow:'0 4px 12px rgba(102, 126, 234, 0.3)',transition:'all 0.3s ease',whiteSpace:'nowrap'}}
+            onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
+            onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+            title="Logout from Mind Mate"
+          >
+            🚪 Logout
+          </button>
+        </div>
       </div>
       <div className="app-grid">
         <div className="card">
@@ -104,7 +122,10 @@ export default function App(){
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <button onClick={async ()=>{
                 try{
-                  const res = await fetch('http://localhost:4000/summary');
+                  const user = JSON.parse(localStorage.getItem('mindmate_user') || '{}');
+                  const userId = user.userId;
+                  
+                  const res = await fetch(`http://localhost:4000/summary?userId=${userId}`);
                   const data = await res.json();
                   setSummary(data.summary);
                 }catch(e){

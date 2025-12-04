@@ -98,8 +98,8 @@ export default function ChatPanel(){
   }
 
   return (
-    <div style={{display:'flex',flexDirection:'column',height:'100%',background:'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',minHeight:0}}>
-      <div ref={messagesContainerRef} style={{flex:1,overflow:'hidden',padding:12,display:'flex',flexDirection:'column',minHeight:0}}>
+    <div style={{display:'flex',flexDirection:'column',height:'100%',background:'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',minHeight:0,flex:1}}>
+      <div ref={messagesContainerRef} style={{flex:1,overflow:'auto',padding:12,display:'flex',flexDirection:'column',minHeight:0}}>
         {messages.length === 0 && (
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'#888',fontSize:'14px',textAlign:'center',fontStyle:'italic'}}>
             Start a conversation. I'm here to listen and support you.

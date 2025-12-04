@@ -4,6 +4,7 @@ import MoodInput from './components/MoodInput'
 import TrendChart from './components/TrendChart'
 import SummaryPanel from './components/SummaryPanel'
 import BreathingExercise from './components/BreathingExercise'
+import GoogleFitPanel from './components/GoogleFitPanel'
 import mindMateLogo from '../Images/MindMateFinal.png'
 import './styles.css'
 
@@ -108,8 +109,9 @@ export default function App({ onLogout }){
       <div className="app-grid">
         <div className="card">
           <MoodInput onSaved={(e)=>{ setEntries(e); localStorage.setItem('mindmate_entries', JSON.stringify(e)); }} />
+          <GoogleFitPanel entries={entries} />
         </div>
-        <div className="card" style={{height:'auto',flex:1,minHeight:0,display:'flex',flexDirection:'column'}}>
+        <div className="card" style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
           <ChatPanel key={refreshKey} />
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:16}}>

@@ -9,12 +9,25 @@ body {
 
 /* Hide scrollbar while keeping functionality */
 ::-webkit-scrollbar {
-  display: none;
+  width: 6px;
 }
 
 * {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  -ms-overflow-style: thin-scrollbar;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(111, 168, 241, 0.4);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 168, 241, 0.6);
 }
 
 .app-grid { 
@@ -22,8 +35,28 @@ body {
   grid-template-columns: 300px 1fr 320px; 
   gap:16px; 
   padding:20px;
-  overflow-y: auto;
+  overflow: hidden;
   flex: 1;
+  height: 100%;
+}
+
+/* Left panel scrollable */
+.app-grid > div:nth-child(1) {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Center panel (chat) - flex layout with fixed input */
+.app-grid > div:nth-child(2) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Right panel scrollable */
+.app-grid > div:nth-child(3) {
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .card { 

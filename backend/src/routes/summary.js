@@ -20,7 +20,7 @@ router.use(extractUserId);
 
 async function readData() {
   await fs.ensureFile(DATA_PATH);
-  const raw = await fs.readFile(DATA_PATH, 'utf8').catch(()=> '{}');
+  const raw = await fs.readFile(DATA_PATH, 'utf8').catch(() => '{}');
   try {
     return JSON.parse(raw || '{}');
   } catch (e) {
@@ -37,11 +37,20 @@ router.get('/', async (req, res) => {
   const entries = getUserData(allData, req.userId);
   const last12 = entries.slice(-12);
   try {
-    const summary = await llm.generateSummary(last12);
-    res.json({ summary });
+    const summaryText = await llm.generateSummary(last12);
+    
+    // ✅ Return summary as plain text string, not wrapped
+    res.json({ 
+      summary: summaryText,  // Plain string from Groq
+      success: true,
+      entriesAnalyzed: last12.length
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'LLM error' });
+    console.error('Summary generation error:', err);
+    res.status(500).json({ 
+      error: 'Failed to generate summary',
+      details: err.message
+    });
   }
 });
 

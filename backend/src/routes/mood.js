@@ -44,19 +44,41 @@ function setUserData(allData, userId, data) {
 }
 
 router.post('/', async (req, res) => {
-  const { mood, stress } = req.body;
+  const { mood, stress, feeling, context, dayCompleted } = req.body;
   if (typeof mood !== 'number' || typeof stress !== 'number') {
     return res.status(400).json({ error: 'mood and stress (numbers) required' });
   }
   
   const allData = await readData();
   const entries = getUserData(allData, req.userId);
-  
-  const entry = { mood, stress, timestamp: new Date().toISOString() };
+
+  const entry = {
+    mood,
+    stress,
+    feeling: feeling || 'neutral',
+    context: context || 'manual',
+    dayCompleted: dayCompleted || null,
+    timestamp: new Date().toISOString()
+  };
+
+  // push into user's raw entries
   entries.push(entry);
-  
-  const updatedData = setUserData(allData, req.userId, entries);
-  await writeData(updatedData);
+  allData[req.userId] = entries;
+
+  // Also save a compact mood entry into dashboard table for quick access
+  if (!allData.dashboardData) allData.dashboardData = {};
+  if (!allData.dashboardData[req.userId]) allData.dashboardData[req.userId] = { completedChallenges: [], moodEntries: [] };
+  allData.dashboardData[req.userId].moodEntries = allData.dashboardData[req.userId].moodEntries || [];
+  allData.dashboardData[req.userId].moodEntries.push({
+    mood: entry.mood,
+    stress: entry.stress,
+    feeling: entry.feeling,
+    context: entry.context,
+    dayCompleted: entry.dayCompleted,
+    timestamp: entry.timestamp
+  });
+
+  await writeData(allData);
 
   const detection = detectStress(entries);
   const last10 = entries.slice(-10);

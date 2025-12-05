@@ -10,6 +10,9 @@ const summaryRouter = require('./routes/summary');
 const loginRouter = require('./routes/login');
 const googleAuthRouter = require('./routes/googleAuth');
 const googleFitRouter = require('./routes/googleFit');
+const stressRecoveryRouter = require('./routes/stressRecovery');
+const teamAlertsRouter = require('./routes/teamAlerts');
+const recommendationsRouter = require('./routes/recommendations');
 
 const app = express();
 app.use(cors());
@@ -21,6 +24,9 @@ app.use('/chat', chatRouter);
 app.use('/summary', summaryRouter);
 app.use('/google-auth', googleAuthRouter);
 app.use('/google-fit', googleFitRouter);
+app.use('/stress-recovery', stressRecoveryRouter);
+app.use('/team-alerts', teamAlertsRouter);
+app.use('/recommendations', recommendationsRouter);
 
 // Root handler for health check
 app.get('/', (req, res) => {

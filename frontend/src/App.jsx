@@ -5,6 +5,9 @@ import TrendChart from './components/TrendChart'
 import SummaryPanel from './components/SummaryPanel'
 import BreathingExercise from './components/BreathingExercise'
 import GoogleFitPanel from './components/GoogleFitPanel'
+import StressRecoveryChallenge from './components/StressRecoveryChallenge'
+import TeamAlertsPanel from './components/TeamAlertsPanel'
+import SmartRecommendations from './components/SmartRecommendations'
 import mindMateLogo from '../Images/MindMateFinal.png'
 import './styles.css'
 
@@ -12,15 +15,20 @@ export default function App({ onLogout }){
   const [entries, setEntries] = useState([])
   const [summary, setSummary] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [activeTab, setActiveTab] = useState('dashboard')
+  const [userId, setUserId] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(()=>{
     // load last 10 entries from backend, or from localStorage fallback
     async function load(){
       try{
         const user = JSON.parse(localStorage.getItem('mindmate_user') || '{}');
-        const userId = user.userId;
+        const uid = user.userId;
+        setUserId(uid);
+        setIsAdmin(user.isAdmin || false);
         
-        const res = await fetch(`http://localhost:4000/mood?userId=${userId}`);
+        const res = await fetch(`http://localhost:4000/mood?userId=${uid}`);
         if(res.ok){
           const data = await res.json();
           setEntries(data.entries || []);
@@ -49,13 +57,13 @@ export default function App({ onLogout }){
 
     try {
       const user = JSON.parse(localStorage.getItem('mindmate_user') || '{}');
-      const userId = user.userId;
+      const uid = user.userId;
       
       // Call backend to clear data
-      const res = await fetch(`http://localhost:4000/mood/clear?userId=${userId}`, {
+      const res = await fetch(`http://localhost:4000/mood/clear?userId=${uid}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
+        body: JSON.stringify({ userId: uid })
       });
       
       if (res.ok) {
@@ -75,14 +83,20 @@ export default function App({ onLogout }){
 
   return (
     <div style={{display:'flex',flexDirection:'column',height:'100vh'}}>
-      <div style={{padding:20,background:'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:32,flexShrink:0}}>
+      <div style={{padding:20,background:'linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%)',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:16,flexShrink:0}}>
         <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
           <div className="logo-circle">
             <img src={mindMateLogo} alt="Mind Mate" style={{height:80,width:80,objectFit:'contain'}} />
           </div>
           <h2 style={{margin:'12px 0 0 0',fontSize:'20px',fontWeight:'400',fontFamily:"'Segoe Print', 'Comic Sans MS', cursive, sans-serif",letterSpacing:'1px',background:'linear-gradient(135deg, #6FA8F1 0%, #4FD1C5 100%)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text',fontStyle:'italic',animation:'emboss-pulse 2s ease-in-out infinite'}}>Mind Mate</h2>
         </div>
-        <div style={{flex:1,display:'flex',justifyContent:'center',flexShrink:0}}>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',flex:1}}>
+          <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:12,flexShrink:0}}>
+            <button onClick={() => setActiveTab('dashboard')} style={{padding:'8px 12px',borderRadius:8,background: activeTab === 'dashboard' ? 'linear-gradient(135deg, #6FA8F1 0%, #4FD1C5 100%)' : '#ddd',color: activeTab === 'dashboard' ? '#fff' : '#333',border:'none',cursor:'pointer',fontWeight:'600',fontSize:'12px'}}>Dashboard</button>
+            <button onClick={() => setActiveTab('recovery')} style={{padding:'8px 12px',borderRadius:8,background: activeTab === 'recovery' ? 'linear-gradient(135deg, #6FA8F1 0%, #4FD1C5 100%)' : '#ddd',color: activeTab === 'recovery' ? '#fff' : '#333',border:'none',cursor:'pointer',fontWeight:'600',fontSize:'12px'}}>Recovery</button>
+            <button onClick={() => setActiveTab('recommendations')} style={{padding:'8px 12px',borderRadius:8,background: activeTab === 'recommendations' ? 'linear-gradient(135deg, #6FA8F1 0%, #4FD1C5 100%)' : '#ddd',color: activeTab === 'recommendations' ? '#fff' : '#333',border:'none',cursor:'pointer',fontWeight:'600',fontSize:'12px'}}>Recommendations</button>
+            {isAdmin && <button onClick={() => setActiveTab('alerts')} style={{padding:'8px 12px',borderRadius:8,background: activeTab === 'alerts' ? 'linear-gradient(135deg, #6FA8F1 0%, #4FD1C5 100%)' : '#ddd',color: activeTab === 'alerts' ? '#fff' : '#333',border:'none',cursor:'pointer',fontWeight:'600',fontSize:'12px'}}>Alerts</button>}
+          </div>
           <BreathingExercise />
         </div>
         <div style={{display:'flex',gap:10,alignItems:'center'}}>
@@ -106,6 +120,8 @@ export default function App({ onLogout }){
           </button>
         </div>
       </div>
+      
+      {activeTab === 'dashboard' && (
       <div className="app-grid">
         <div className="card">
           <MoodInput onSaved={(e)=>{ setEntries(e); localStorage.setItem('mindmate_entries', JSON.stringify(e)); }} />
@@ -124,9 +140,6 @@ export default function App({ onLogout }){
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <button onClick={async ()=>{
                 try{
-                  const user = JSON.parse(localStorage.getItem('mindmate_user') || '{}');
-                  const userId = user.userId;
-                  
                   const res = await fetch(`http://localhost:4000/summary?userId=${userId}`);
                   const data = await res.json();
                   setSummary(data.summary);
@@ -140,6 +153,25 @@ export default function App({ onLogout }){
           </div>
         </div>
       </div>
+      )}
+      
+      {activeTab === 'recovery' && (
+      <div style={{padding:20,overflow:'auto',flex:1}}>
+        <StressRecoveryChallenge userId={userId} />
+      </div>
+      )}
+      
+      {activeTab === 'recommendations' && (
+      <div style={{padding:20,overflow:'auto',flex:1}}>
+        <SmartRecommendations userId={userId} />
+      </div>
+      )}
+      
+      {activeTab === 'alerts' && (
+      <div style={{padding:20,overflow:'auto',flex:1}}>
+        <TeamAlertsPanel userId={userId} teamId="team-1" isAdmin={isAdmin} />
+      </div>
+      )}
     </div>
   )
 }

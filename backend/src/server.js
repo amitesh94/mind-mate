@@ -2,7 +2,22 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
-require('dotenv').config();
+const fs = require('fs');
+
+// Load .env from backend folder
+const dotenvPath = path.resolve(__dirname, '../.env');
+console.log(`📁 .env file path: ${dotenvPath}`);
+console.log(`📁 .env exists: ${fs.existsSync(dotenvPath)}`);
+
+require('dotenv').config({ path: dotenvPath });
+
+// Debug: Log raw environment variables
+console.log('\n🔍 Environment Check:');
+console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? `[LOADED - ${process.env.GROQ_API_KEY.substring(0, 10)}...]` : '[NOT FOUND]');
+console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? `[LOADED - ${process.env.OPENAI_API_KEY.substring(0, 10)}...]` : '[NOT FOUND]');
+console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '[LOADED]' : '[NOT FOUND]');
+console.log('PORT:', process.env.PORT || '[DEFAULT 4000]');
+console.log();
 
 const moodRouter = require('./routes/mood');
 const chatRouter = require('./routes/chat');

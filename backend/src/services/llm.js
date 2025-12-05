@@ -1,4 +1,9 @@
 // Provider detection and clients (Groq, OpenAI, or Claude via HTTP)
+
+// Ensure dotenv loads before anything else
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
 let groqClient = null;
 let openaiClient = null;
 let hasGroq = false;

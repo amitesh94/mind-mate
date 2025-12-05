@@ -213,6 +213,38 @@
       "context": "challenge-completion",
       "dayCompleted": 3,
       "timestamp": "2025-12-05T12:43:18.709Z"
+    },
+    {
+      "mood": 3,
+      "stress": 2,
+      "feeling": "neutral",
+      "context": "challenge-completion",
+      "dayCompleted": 1,
+      "timestamp": "2025-12-05T16:50:11.408Z"
+    },
+    {
+      "mood": 3,
+      "stress": 2,
+      "feeling": "tired",
+      "context": "challenge-completion",
+      "dayCompleted": 1,
+      "timestamp": "2025-12-05T16:50:20.326Z"
+    },
+    {
+      "mood": 3,
+      "stress": 2,
+      "feeling": "relaxed",
+      "context": "challenge-completion",
+      "dayCompleted": 2,
+      "timestamp": "2025-12-05T16:50:35.495Z"
+    },
+    {
+      "mood": 3,
+      "stress": 2,
+      "feeling": "energized",
+      "context": "challenge-completion",
+      "dayCompleted": 3,
+      "timestamp": "2025-12-05T16:50:45.651Z"
     }
   ],
   "user": [
@@ -559,7 +591,7 @@
         "id": "1764938615676",
         "name": "Stress Reset Revival",
         "startTime": 1764938615676,
-        "status": "active",
+        "status": "completed",
         "days": [
           {
             "day": 1,
@@ -605,7 +637,84 @@
           }
         ],
         "dailyProgress": {},
-        "generatedBy": "AI"
+        "generatedBy": "AI",
+        "completedTime": 1764946739934
+      },
+      {
+        "id": "1764946744361",
+        "name": "Challenge",
+        "startTime": 1764946744361,
+        "status": "completed",
+        "days": [],
+        "dailyProgress": {},
+        "generatedBy": "unknown",
+        "completedTime": 1764946807935
+      },
+      {
+        "id": "1764946882831",
+        "name": "Challenge",
+        "startTime": 1764946882831,
+        "status": "completed",
+        "days": [],
+        "dailyProgress": {},
+        "generatedBy": "unknown",
+        "completedTime": 1764953399833
+      },
+      {
+        "id": "1764953401742",
+        "name": "Calm Rise, Balanced Sway",
+        "startTime": 1764953401742,
+        "status": "completed",
+        "days": [
+          {
+            "day": 1,
+            "completed": true,
+            "tasks": [
+              {
+                "name": "Guided Body Scan",
+                "completed": false
+              },
+              {
+                "name": "Mindful Walking",
+                "completed": false
+              }
+            ],
+            "completedTime": 1764953414317
+          },
+          {
+            "day": 2,
+            "completed": true,
+            "tasks": [
+              {
+                "name": "Morning Stretch",
+                "completed": false
+              },
+              {
+                "name": "Social Connection",
+                "completed": false
+              }
+            ],
+            "completedTime": 1764953432773
+          },
+          {
+            "day": 3,
+            "completed": true,
+            "tasks": [
+              {
+                "name": "Restorative Breathing",
+                "completed": false
+              },
+              {
+                "name": "Reflection and Gratitude",
+                "completed": false
+              }
+            ],
+            "completedTime": 1764953441610
+          }
+        ],
+        "dailyProgress": {},
+        "generatedBy": "AI",
+        "completedTime": 1764953441610
       }
     ]
   },
@@ -625,6 +734,47 @@
           "completedDate": "2025-12-05T12:43:17.041Z",
           "completedTime": 1764938597041,
           "daysCompleted": 3
+        },
+        {
+          "challengeId": "1764953401742",
+          "name": "Calm Rise, Balanced Sway",
+          "completedDate": "2025-12-05T16:50:41.611Z",
+          "completedTime": 1764953441611,
+          "daysCompleted": 3
+        }
+      ],
+      "moodEntries": [
+        {
+          "mood": 3,
+          "stress": 2,
+          "feeling": "neutral",
+          "context": "challenge-completion",
+          "dayCompleted": 1,
+          "timestamp": "2025-12-05T16:50:11.408Z"
+        },
+        {
+          "mood": 3,
+          "stress": 2,
+          "feeling": "tired",
+          "context": "challenge-completion",
+          "dayCompleted": 1,
+          "timestamp": "2025-12-05T16:50:20.326Z"
+        },
+        {
+          "mood": 3,
+          "stress": 2,
+          "feeling": "relaxed",
+          "context": "challenge-completion",
+          "dayCompleted": 2,
+          "timestamp": "2025-12-05T16:50:35.495Z"
+        },
+        {
+          "mood": 3,
+          "stress": 2,
+          "feeling": "energized",
+          "context": "challenge-completion",
+          "dayCompleted": 3,
+          "timestamp": "2025-12-05T16:50:45.651Z"
         }
       ]
     }

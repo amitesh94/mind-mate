@@ -214,11 +214,12 @@ export default function GoogleFitPanel({ entries = [] }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
             <div style={{ flex: 1 }}>
               <h5 style={{ margin: '0 0 4px 0', color: '#0F4761', fontSize: '14px', fontWeight: 600 }}>
-                 Google Fit Connected
+                ✅ Google Fit Connected
               </h5>
               {stepsToday > 0 && (
                 <p style={{ margin: 0, fontSize: '11px', color: '#666' }}>
-                  {stepsToday.toLocaleString()} / {targetSteps.toLocaleString()} steps • {heartPoints} Heart Points
+                  {/* ✅ UPDATED: Show Heart Points (HP) instead of vigorous mins */}
+                  {stepsToday.toLocaleString()} / {targetSteps.toLocaleString()} steps • {heartPoints} HP
                 </p>
               )}
             </div>
@@ -308,12 +309,16 @@ export default function GoogleFitPanel({ entries = [] }) {
                         transition: 'width 0.3s ease'
                       }} />
                     </div>
+                    
+                    {/* ✅ UPDATED: Heart Points instead of Vigorous Minutes */}
                     <p style={{ margin: '8px 0 6px 0', fontSize: '12px' }}>
-                      <strong>Heart Points:</strong> {heartPoints} (Heart Rate Average)
+                      <strong>❤️ Heart Points:</strong> {heartPoints} HP
                     </p>
-                    <p style={{ margin: '6px 0', fontSize: '12px' }}>
-                      <strong>Daily Target:</strong> {targetSteps.toLocaleString()} steps
-                    </p>
+                    {heartPoints === 0 && (
+                      <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: '#999', fontStyle: 'italic' }}>
+                        No vigorous activity recorded today. Requires 70%+ max heart rate exercise.
+                      </p>
+                    )}
                   </>
                 ) : sevenDayData ? (
                   <>
@@ -326,9 +331,14 @@ export default function GoogleFitPanel({ entries = [] }) {
                     <p style={{ margin: '6px 0', fontSize: '12px' }}>
                       <strong>Daily Average:</strong> {sevenDayData.steps.average.toLocaleString()} steps
                     </p>
-                    <p style={{ margin: '6px 0', fontSize: '12px' }}>
-                      <strong>Avg Heart Rate:</strong> {sevenDayData.heart.average} bpm
-                    </p>
+                    
+                    {/* ✅ UPDATED: Heart Points instead of Vigorous Minutes */}
+                    {sevenDayData.heart && (
+                      <p style={{ margin: '6px 0', fontSize: '12px' }}>
+                        <strong>Heart Points:</strong> {sevenDayData.heart.totalHeartMinutes || 0} HP
+                      </p>
+                    )}
+                    
                     {sevenDayData.steps.dailySteps.length > 0 && (
                       <div style={{ marginTop: '8px', fontSize: '11px' }}>
                         <p style={{ margin: '6px 0', fontWeight: 600 }}>Daily Breakdown:</p>

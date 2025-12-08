@@ -2,6 +2,237 @@ const express = require('express');
 const { google } = require('googleapis');
 const router = express.Router();
 
+// ✅ ADD THIS UPDATED DEBUG ENDPOINT (uses com.google.heart_minutes)
+
+router.get('/debug/heart-points-raw', async (req, res) => {
+  const { accessToken, days = 7 } = req.query;
+  
+  if (!accessToken) {
+    return res.status(400).json({ error: 'accessToken required' });
+  }
+  
+  try {
+    console.log('\n' + '='.repeat(80));
+    console.log('[DEBUG] HEART MINUTES RAW DATA INSPECTION');
+    console.log('='.repeat(80));
+    
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+    
+    oauth2Client.setCredentials({ access_token: accessToken });
+    const fitness = google.fitness({ version: 'v1', auth: oauth2Client });
+    
+    const endTime = Date.now();
+    const startTime = endTime - (parseInt(days) * 24 * 60 * 60 * 1000);
+    
+    console.log(`[DEBUG] Date Range: ${new Date(startTime).toISOString()} to ${new Date(endTime).toISOString()}`);
+    console.log(`[DEBUG] Days: ${days}`);
+    
+    // Step 1: List available data sources
+    console.log('\n[DEBUG STEP 1] Checking available data sources...');
+    let availableDataTypes = [];
+    try {
+      const dataSources = await fitness.users.dataSources.list({
+        userId: 'me'
+      });
+      
+      console.log(`[DEBUG] Found ${dataSources.data.dataSource?.length || 0} data sources`);
+      
+      dataSources.data.dataSource?.forEach(ds => {
+        console.log(`[DEBUG]   - ${ds.dataType.name}`);
+        availableDataTypes.push(ds.dataType.name);
+      });
+    } catch (err) {
+      console.warn('[DEBUG] Could not list data sources:', err.message);
+    }
+    
+    // Check if heart_minutes is available
+    const hasHeartMinutes = availableDataTypes.includes('com.google.heart_minutes');
+    console.log(`[DEBUG] Has com.google.heart_minutes: ${hasHeartMinutes ? '✅ YES' : '❌ NO'}`);
+    
+    if (!hasHeartMinutes) {
+      console.log('[DEBUG] ⚠️  Device does not support Heart Minutes!');
+      console.log('[DEBUG] This device needs a heart rate sensor.');
+      
+      return res.json({
+        success: false,
+        debug: {
+          message: 'Device does not support Heart Minutes',
+          dataTypes: availableDataTypes,
+          hasHeartMinutes: false,
+          summary: {
+            totalBuckets: 0,
+            bucketsWithData: 0,
+            totalHeartMinutes: 0
+          },
+          recommendation: 'User needs a smartwatch (Apple Watch, Fitbit, etc.) or Google Pixel phone with built-in heart rate sensor'
+        }
+      });
+    }
+    
+    // Step 2: Fetch raw com.google.heart_minutes
+    console.log('\n[DEBUG STEP 2] Fetching com.google.heart_minutes...');
+    
+    const response = await fitness.users.dataset.aggregate({
+      userId: 'me',
+      requestBody: {
+        aggregateBy: [
+          {
+            dataTypeName: 'com.google.heart_minutes'
+          }
+        ],
+        bucketByTime: { durationMillis: 86400000 },
+        startTimeMillis: startTime,
+        endTimeMillis: endTime
+      }
+    });
+    
+    console.log(`[DEBUG] API Response received`);
+    console.log(`[DEBUG] Buckets: ${response.data.bucket?.length || 0}`);
+    
+    // Step 3: Detailed bucket inspection
+    console.log('\n[DEBUG STEP 3] Inspecting buckets...');
+    
+    let details = {
+      totalBuckets: response.data.bucket?.length || 0,
+      bucketsWithData: 0,
+      totalHeartMinutes: 0,
+      bucketDetails: []
+    };
+    
+    if (response.data.bucket && Array.isArray(response.data.bucket)) {
+      response.data.bucket.forEach((bucket, bucketIdx) => {
+        const bucketStartTime = parseInt(bucket.startTimeMillis);
+        const bucketDate = new Date(bucketStartTime).toISOString().split('T')[0];
+        let bucketData = {
+          date: bucketDate,
+          datasets: [],
+          totalMinutesInBucket: 0
+        };
+        
+        if (!bucket.dataset || bucket.dataset.length === 0) {
+          console.log('[DEBUG] ⚠️  No datasets in bucket');
+          details.bucketDetails.push(bucketData);
+          return;
+        }
+        
+        console.log(`[DEBUG] Datasets: ${bucket.dataset.length}`);
+        
+        bucket.dataset.forEach((dataset, dsIdx) => {
+          console.log(`[DEBUG]   Dataset ${dsIdx}: ${dataset.dataTypeName}`);
+          
+          let datasetData = {
+            type: dataset.dataTypeName,
+            pointsCount: dataset.point?.length || 0,
+            points: []
+          };
+          
+          if (!dataset.point || dataset.point.length === 0) {
+            console.log('[DEBUG]     ⚠️  No points in dataset');
+            bucketData.datasets.push(datasetData);
+            return;
+          }
+          
+          console.log(`[DEBUG]     Points: ${dataset.point.length}`);
+          
+          dataset.point.forEach((point, ptIdx) => {
+            const intVal = point.value?.[0]?.intVal;
+            const fpVal = point.value?.[0]?.fpVal;
+            const finalValue = intVal !== undefined ? intVal : fpVal;
+            
+            console.log(`[DEBUG]       Point ${ptIdx}: ${finalValue} minutes`);
+            
+            if (finalValue > 0) {
+              bucketData.totalMinutesInBucket += finalValue;
+              details.totalHeartMinutes += finalValue;
+            }
+            
+            datasetData.points.push({
+              value: finalValue,
+              intVal,
+              fpVal,
+              timestamp: point.startTimeNanos
+            });
+          });
+          
+          bucketData.datasets.push(datasetData);
+        });
+        
+        if (bucketData.totalMinutesInBucket > 0) {
+          console.log(`[DEBUG] ✅ Bucket total: ${bucketData.totalMinutesInBucket} minutes`);
+          details.bucketsWithData++;
+        } else {
+          console.log('[DEBUG] ℹ️  Bucket total: 0 minutes (no vigorous activity)');
+        }
+        
+        details.bucketDetails.push(bucketData);
+      });
+    } else {
+      console.log('[DEBUG] ⚠️  No buckets in response');
+    }
+    
+    console.log('\n' + '='.repeat(80));
+    console.log('[DEBUG] SUMMARY');
+    console.log('='.repeat(80));
+    console.log(`[DEBUG] Available Data Types: ${availableDataTypes.join(', ')}`);
+    console.log(`[DEBUG] Has com.google.heart_minutes: ✅ YES`);
+    console.log(`[DEBUG] Total Buckets: ${details.totalBuckets}`);
+    console.log(`[DEBUG] Buckets with Data: ${details.bucketsWithData}`);
+    console.log(`[DEBUG] Total Heart Minutes: ${details.totalHeartMinutes}`);
+    console.log('='.repeat(80) + '\n');
+    
+    res.json({
+      success: true,
+      debug: {
+        message: 'See backend console for detailed output',
+        dataTypes: availableDataTypes,
+        hasHeartMinutes: true,
+        summary: {
+          totalBuckets: details.totalBuckets,
+          bucketsWithData: details.bucketsWithData,
+          totalHeartMinutes: details.totalHeartMinutes
+        }
+      },
+      fullDetails: details
+    });
+    
+  } catch (err) {
+    console.error('[DEBUG] ❌ Error:', err.message);
+    
+    // ✅ Check if it's a "no datasource" error
+    const isNoDataSource = err.message?.includes('no default datasource');
+    
+    if (isNoDataSource) {
+      console.log('[DEBUG] ⚠️  DIAGNOSIS: Device does not have heart rate sensor');
+      return res.json({
+        success: false,
+        debug: {
+          message: 'Device does not support Heart Minutes tracking',
+          error: err.message,
+          diagnosis: 'No heart rate data source found',
+          solution: [
+            'User needs a smartwatch (Apple Watch, Fitbit, Garmin)',
+            'OR Google Pixel phone with built-in heart rate sensor',
+            'OR manually log heart rate in Google Fit app'
+          ]
+        }
+      });
+    }
+    
+    res.json({
+      success: false,
+      debug: {
+        message: 'Debug failed',
+        error: err.message,
+        type: err.constructor.name
+      }
+    });
+  }
+});
+
 // Get steps for a specific period (default: today)
 router.get('/steps', async (req, res) => {
   const { accessToken, days = 1 } = req.query;
@@ -252,12 +483,17 @@ router.get('/steps-today', async (req, res) => {
   }
 });
 
-// Get Heart Points
+// ✅ FIXED: Use com.google.heart_minutes instead of com.google.heart_points
+
 router.get('/heart-points', async (req, res) => {
   const { accessToken, days = 1 } = req.query;
   
   if (!accessToken) {
-    return res.status(400).json({ error: 'accessToken required' });
+    return res.status(400).json({ 
+      success: false,
+      error: 'accessToken required', 
+      data: { heartPoints: 0, dailyBreakdown: [], hasData: false } 
+    });
   }
   
   try {
@@ -273,68 +509,128 @@ router.get('/heart-points', async (req, res) => {
     const endTime = Date.now();
     const startTime = endTime - (parseInt(days) * 24 * 60 * 60 * 1000);
     
-    console.log(`[HEART POINTS] Fetching from ${new Date(startTime)} to ${new Date(endTime)}`);
+    console.log(`[HEART-MINUTES] Fetching ACTUAL Heart Minutes metric (vigorous activity)`);
+    console.log(`[HEART-MINUTES] Date range: ${new Date(startTime).toISOString()} to ${new Date(endTime).toISOString()}`);
     
-    // Heart points are calculated from heart rate data
+    // ✅ CORRECT: Fetch com.google.heart_minutes (vigorous activity minutes)
     const response = await fitness.users.dataset.aggregate({
       userId: 'me',
       requestBody: {
         aggregateBy: [
           {
-            dataTypeName: 'com.google.heart_rate.bpm'
+            // ✅ This is the CORRECT metric for Heart Minutes
+            dataTypeName: 'com.google.heart_minutes'
           }
         ],
-        bucketByTime: { durationMillis: 86400000 },
+        bucketByTime: { durationMillis: 86400000 }, // 1 day buckets
         startTimeMillis: startTime,
         endTimeMillis: endTime
       }
     });
     
-    console.log('[HEART POINTS] Raw response:', JSON.stringify(response.data, null, 2));
+    console.log('[HEART-MINUTES] API Response:', JSON.stringify(response.data, null, 2));
     
-    let heartRates = [];
+    let totalHeartMinutes = 0;
+    let dailyBreakdown = [];
+    let hasData = false;
+    
+    // ✅ Parse Heart Minutes data
     if (response.data.bucket && Array.isArray(response.data.bucket)) {
-      response.data.bucket.forEach(bucket => {
+      console.log(`[HEART-MINUTES] Received ${response.data.bucket.length} buckets`);
+      
+      response.data.bucket.forEach((bucket, bucketIdx) => {
+        const bucketStartTime = parseInt(bucket.startTimeMillis);
+        const bucketDate = new Date(bucketStartTime).toISOString().split('T')[0];
+        let dayMinutes = 0;
+        
+        console.log(`[HEART-MINUTES] Processing bucket ${bucketIdx} for ${bucketDate}`);
+        
         if (bucket.dataset && Array.isArray(bucket.dataset)) {
-          bucket.dataset.forEach(dataset => {
+          bucket.dataset.forEach((dataset, dsIdx) => {
+            console.log(`[HEART-MINUTES]   Dataset ${dsIdx}: ${dataset.dataTypeName}`);
+            
             if (dataset.point && Array.isArray(dataset.point)) {
-              dataset.point.forEach(point => {
-                const hrValue = point.value[0]?.fpVal || 0;
-                if (hrValue > 0) {
-                  heartRates.push(hrValue);
-                  console.log(`[HEART POINTS] Found HR: ${hrValue} bpm`);
+              console.log(`[HEART-MINUTES]     Points: ${dataset.point.length}`);
+              
+              dataset.point.forEach((point, ptIdx) => {
+                // ✅ Heart Minutes are stored as intVal (integer) or fpVal (float)
+                const hmValue = point.value[0]?.intVal || point.value[0]?.fpVal || 0;
+                
+                if (hmValue > 0) {
+                  dayMinutes += hmValue;
+                  hasData = true;
+                  console.log(`[HEART-MINUTES]       Point ${ptIdx}: ${hmValue} minutes`);
                 }
               });
+            } else {
+              console.log(`[HEART-MINUTES]     No points in this dataset`);
             }
           });
+        } else {
+          console.log(`[HEART-MINUTES]   No datasets in bucket ${bucketIdx}`);
+        }
+        
+        dailyBreakdown.push({ date: bucketDate, heartMinutes: dayMinutes });
+        totalHeartMinutes += dayMinutes;
+        
+        if (dayMinutes > 0) {
+          console.log(`[HEART-MINUTES] ✅ ${bucketDate}: ${dayMinutes} minutes`);
+        } else {
+          console.log(`[HEART-MINUTES] ${bucketDate}: 0 minutes (no vigorous activity)`);
+        }
+      });
+    } else {
+      console.log('[HEART-MINUTES] ⚠️ No buckets received from API');
+    }
+    
+    console.log(`[HEART-MINUTES] ✅ TOTAL: ${totalHeartMinutes} minutes`);
+    
+    return res.status(200).json({
+      success: true,
+      data: { 
+        heartPoints: totalHeartMinutes,  // Keep as heartPoints for UI compatibility
+        dailyBreakdown: dailyBreakdown,
+        hasData: hasData,
+        days: parseInt(days),
+        message: hasData 
+          ? `${totalHeartMinutes} vigorous minutes earned` 
+          : 'No vigorous activity recorded. Heart Minutes require exercise at 70%+ max heart rate.'
+      }
+    });
+    
+  } catch (err) {
+    console.error('[HEART-MINUTES] ❌ Error:', err.message);
+    console.error('[HEART-MINUTES] Full error:', err);
+    
+    // ✅ Check if it's a "no datasource" error
+    const isNoDataSource = err.message?.includes('no default datasource') || 
+                          err.message?.includes('datasource');
+    
+    if (isNoDataSource) {
+      console.log('[HEART-MINUTES] ⚠️  Device does not support Heart Minutes tracking');
+      return res.status(200).json({
+        success: false,
+        error: 'Heart Minutes not available',
+        data: { 
+          heartPoints: 0,
+          dailyBreakdown: [],
+          hasData: false,
+          message: 'Your device does not have a heart rate sensor. Heart Minutes require a wearable device (Apple Watch, Fitbit, etc.) or Google Pixel phone with built-in heart rate sensor.'
         }
       });
     }
     
-    // Heart Points calculation: roughly average of heart rates
-    const avgHeartRate = heartRates.length > 0 
-      ? Math.round(heartRates.reduce((a, b) => a + b) / heartRates.length)
-      : 0;
-    
-    console.log(`[HEART POINTS] Average: ${avgHeartRate}, Data points: ${heartRates.length}`);
-    
-    res.json({
-      success: true,
+    // Other errors
+    return res.status(200).json({
+      success: false,
+      error: err.message,
       data: { 
-        heartPoints: avgHeartRate,
-        avgHeartRate: avgHeartRate,
-        heartRateDataPoints: heartRates.length
-      },
-      debug: {
-        startTime: new Date(startTime).toISOString(),
-        endTime: new Date(endTime).toISOString(),
-        bucketsReceived: response.data.bucket ? response.data.bucket.length : 0,
-        heartRateValues: heartRates
+        heartPoints: 0,
+        dailyBreakdown: [],
+        hasData: false,
+        message: 'Failed to fetch Heart Minutes. This metric may not be available on your device.'
       }
     });
-  } catch (err) {
-    console.error('[HEART POINTS] API error:', err.message);
-    res.status(500).json({ error: err.message });
   }
 });
 
